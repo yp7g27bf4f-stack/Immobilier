@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImmoMémo — Images & mots</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#eef7ff,#f8fbff);color:#17324d}
+.container{max-width:1050px;margin:auto;padding:24px 16px 40px;text-align:center}
+header{background:white;border-radius:20px;padding:18px;box-shadow:0 8px 25px #17324d18;margin-bottom:16px}
+h1{margin:0;font-size:clamp(2rem,6vw,3.2rem)}
+h1 span{color:#329bdd}.subtitle{margin:7px 0 0;color:#60758a}
+.stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:15px 0}
+.stat{background:white;border-radius:13px;padding:10px 17px;box-shadow:0 5px 18px #17324d18}
+button.control{border:0;border-radius:12px;padding:11px 18px;background:#25b477;color:white;font-weight:bold;cursor:pointer}
+#message{min-height:28px;font-weight:bold;margin:8px}
+.game{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;max-width:850px;margin:18px auto}
+.card{aspect-ratio:1.18;border:0;background:transparent;padding:0;perspective:900px;cursor:pointer}
+.inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}
+.card.open .inner,.card.matched .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:17px;backface-visibility:hidden;overflow:hidden;box-shadow:0 6px 18px #17324d22}
+.back{background:#17324d;display:flex;align-items:center;justify-content:center;color:white;font-size:2.5rem}
+.back:after{content:"🏠";filter:grayscale(1) brightness(4)}
+.front{background:white;transform:rotateY(180deg);display:flex;align-items:center;justify-content:center}
+.front.word{font-size:clamp(1.05rem,2.5vw,1.45rem);font-weight:bold;padding:10px}
+.front img{width:100%;height:100%;object-fit:cover}
+.card.matched .front{outline:4px solid #35b87d}
+@media(max-width:700px){.game{grid-template-columns:repeat(3,1fr);gap:9px}}
+@media(max-width:430px){.game{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>🏠 Immo<span>Mémo</span></h1>
+<p class="subtitle">Associez chaque image au bon mot !</p>
+</header>
+<div class="stats">
+<div class="stat">Coups : <strong id="moves">0</strong></div>
+<div class="stat">Paires : <strong id="pairs">0</strong>/8</div>
+<div class="stat">Temps : <strong id="time">0</strong>s</div>
+<button class="control" onclick="newGame()">↻ Nouvelle partie</button>
+</div>
+<div id="message"></div>
+<div id="game" class="game"></div>
+</div>
+
+<script>
+const items=[
+  ["maison","Maison"],["appartement","Appartement"],["cle","Clé"],["agence","Agence immobilière"],
+  ["immeuble","Immeuble"],["terrain","Terrain"],["travaux","Travaux"],["piscine","Piscine"]
+];
+let first=null,second=null,locked=false,moves=0,pairs=0,seconds=0,timer=null;
+
+function newGame(){
+  clearInterval(timer); first=second=null; locked=false; moves=pairs=seconds=0;
+  document.getElementById("moves").textContent=0;
+  document.getElementById("pairs").textContent=0;
+  document.getElementById("time").textContent=0;
+  document.getElementById("message").textContent="";
+  const deck=[];
+  items.forEach(([id,label])=>{
+    deck.push({id,type:"image",label});
+    deck.push({id,type:"word",label});
+  });
+  deck.sort(()=>Math.random()-.5);
+  const game=document.getElementById("game"); game.innerHTML="";
+  deck.forEach(cardData=>{
+    const card=document.createElement("button");
+    card.className="card";
+    card.dataset.id=cardData.id;
+    card.dataset.type=cardData.type;
+    const content=cardData.type==="image"
+      ? `<img src="images/${cardData.id}.jpg" alt="${cardData.label}">`
+      : cardData.label;
+    card.innerHTML=`<div class="inner">
+      <div class="face back"></div>
+      <div class="face front ${cardData.type==="word"?"word":""}">${content}</div>
+    </div>`;
+    card.onclick=()=>flip(card);
+    game.appendChild(card);
+  });
+  timer=setInterval(()=>{seconds++;document.getElementById("time").textContent=seconds},1000);
+}
+function flip(card){
+  if(locked||card===first||card.classList.contains("matched"))return;
+  card.classList.add("open");
+  if(!first){first=card;return}
+  second=card;moves++;
+  document.getElementById("moves").textContent=moves;
+  if(first.dataset.id===second.dataset.id && first.dataset.type!==second.dataset.type){
+    first.classList.add("matched");second.classList.add("matched");
+    pairs++;document.getElementById("pairs").textContent=pairs;
+    first=second=null;
+    if(pairs===items.length){
+      clearInterval(timer);
+      document.getElementById("message").textContent=`🎉 Bravo ! ${moves} coups en ${seconds} secondes.`;
+    }
+  }else{
+    locked=true;
+    setTimeout(()=>{
+      first.classList.remove("open");second.classList.remove("open");
+      first=second=null;locked=false;
+    },900);
+  }
+}
+newGame();
+</script>
+</body>
+</html>
